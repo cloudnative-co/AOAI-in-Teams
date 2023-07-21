@@ -6,8 +6,8 @@
 			"defaultValue": "teams",
 			"type": "String"
 		},
-		"logicapp_nameA": {
-			"defaultValue": "AOAIinTeams_freechatMention",
+		"logicapp_name": {
+			"defaultValue": "AOAIinTeams",
 			"type": "String"
 		},
 		"location": {
@@ -29,12 +29,12 @@
 		"storage_account_name": {
 			"type": "string"
 		},
-		"connections_azureblob_name": {
-			"defaultValue": "gpt",
-			"type": "String"
-		},
 		"storage_account_accesskey": {
 			"type": "string"
+		},
+		"container_name": {
+			"defaultValue": "gpt",
+			"type": "String"
 		}
 	},
 	"variables": {},
@@ -42,7 +42,7 @@
 		{
 			"type": "Microsoft.Web/connections",
 			"apiVersion": "2016-06-01",
-			"name": "[parameters('connections_azureblob_name')]",
+			"name": "[parameters('container_name')]",
 			"location": "[parameters('location')]",
 			"kind": "V1",
 			"properties": {
@@ -82,7 +82,7 @@
 			"name": "[parameters('logicapp_nameA')]",
 			"location": "[parameters('location')]",
 			"dependsOn": [
-				"[resourceId('Microsoft.Web/connections', parameters('connections_azureblob_name'))]",
+				"[resourceId('Microsoft.Web/connections', parameters('container_name'))]",
 				"[resourceId('Microsoft.Web/connections', parameters('connections_teams_name'))]"
 			],
 			"properties": {
@@ -95,12 +95,16 @@
 							"defaultValue": {},
 							"type": "Object"
 						},
-						"blobname": {
+						"storageaccountName": {
 							"defaultValue": "[parameters('storage_account_name')]",
 							"type": "String"
 						},
 						"channelId": {
 							"defaultValue": "[parameters('teams_channel_id')]",
+							"type": "String"
+						},
+						"containerName": {
+							"defaultValue": "[parameters('container_name')]",
 							"type": "String"
 						}
 					},
@@ -208,9 +212,9 @@
 											}
 										},
 										"method": "post",
-										"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent(parameters('blobname')))}/files",
+										"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent(parameters('storageaccountName')))}/files",
 										"queries": {
-											"folderPath": "/gpt",
+											"folderPath": "@parameters('containerName')",
 											"name": "@{body('Parse_JSON_3')?['replyToId']}.json",
 											"queryParametersSingleEncoded": true
 										}
@@ -235,10 +239,10 @@
 											}
 										},
 										"method": "get",
-										"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent(parameters('blobname')))}/GetFileContentByPath",
+										"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent(parameters('storageaccountName')))}/GetFileContentByPath",
 										"queries": {
 											"inferContentType": true,
-											"path": "gpt/@{body('Parse_JSON_3')?['replyToId']}.json",
+											"path": "@{parameters('containerName')}/@{body('Parse_JSON_3')?['replyToId']}.json",
 											"queryParametersSingleEncoded": true
 										}
 									}
@@ -489,7 +493,7 @@
 											}
 										},
 										"method": "put",
-										"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent(parameters('blobname')))}/files/@{encodeURIComponent(encodeURIComponent('gpt/',body('Parse_JSON_3')?['replyToId'],'.json'))}"
+										"path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent(parameters('storageaccountName')))}/files/@{encodeURIComponent(encodeURIComponent(parameters('containerName'),'/',body('Parse_JSON_3')?['replyToId'],'.json'))}"
 									}
 								}
 							},
@@ -541,7 +545,7 @@
 					"$connections": {
 						"value": {
 							"azureblob": {
-								"connectionId": "[resourceId('Microsoft.Web/connections', parameters('connections_azureblob_name'))]",
+								"connectionId": "[resourceId('Microsoft.Web/connections', parameters('container_name'))]",
 								"connectionName": "azureblob",
 								"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/', 'azureblob')]"
 							},
