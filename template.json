@@ -198,7 +198,7 @@
 									},
 									"type": "ApiConnection",
 									"inputs": {
-										"body": "[[\n\t\t{\n\t\t\t\"role\": \"system\",\n\t\t\t\"content\": \"You are an AI assistant that helps people find information.\"\n\t\t},\n {\n \"content\": \"{{UserPlaceHolder}}\",\n \"role\": \"user\"\n }\n\t]",
+										"body": "[[\n\t\t{\n\t\t\t\"role\": \"system\",\n\t\t\t\"content\": \"You are an AI assistant that helps people find information.Please answer in Japanese.\"\n\t\t},\n {\n \"content\": \"{{UserPlaceHolder}}\",\n \"role\": \"user\"\n }\n\t]",
 										"headers": {
 											"ReadFileMetadataFromServer": true
 										},
@@ -444,7 +444,7 @@
 									"type": "SetVariable",
 									"inputs": {
 										"name": "HistoricalMessages",
-										"value": "[\n\t\t{\n\t\t\t\"role\": \"system\",\n\t\t\t\"content\": \"You are an AI assistant that helps people find information.\"\n\t\t},\n {\n \"content\": \"{{UserPlaceHolder}}\",\n \"role\": \"user\"\n }\n\t]\n"
+										"value": "[\n\t\t{\n\t\t\t\"role\": \"system\",\n\t\t\t\"content\": \"You are an AI assistant that helps people find information.Please answer in Japanese.\"\n\t\t},\n {\n \"content\": \"{{UserPlaceHolder}}\",\n \"role\": \"user\"\n }\n\t]\n"
 									}
 								},
 								"Set_variable_-_Store_Previous_Convertsation": {
