@@ -43,7 +43,7 @@
 			"kind": "V1",
 			"properties": {
 				"api": {
-					"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', "[resourceGroup().location]", '/managedApis/', 'azureblob')]"
+					"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', [resourceGroup().location], '/managedApis/', 'azureblob')]"
 				},
 				"parameterValueSet": {
 					"name": "keyBasedAuth",
@@ -67,7 +67,7 @@
 			"kind": "V1",
 			"properties": {
 				"api": {
-					"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', "[resourceGroup().location]", '/managedApis/', 'teams')]"
+					"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', [resourceGroup().location], '/managedApis/', 'teams')]"
 				},
 				"displayName": "TeamsChannel"
 			}
@@ -79,7 +79,7 @@
 			"location": "[resourceGroup().location]",
 			"dependsOn": [
 				"[resourceId('Microsoft.Web/connections', parameters('container_name'))]",
-				"[resourceId('Microsoft.Web/connections', "teams")]"
+				"[resourceId('Microsoft.Web/connections', 'teams')]"
 			],
 			"properties": {
 				"state": "Enabled",
@@ -547,12 +547,12 @@
 							"azureblob": {
 								"connectionId": "[resourceId('Microsoft.Web/connections', parameters('container_name'))]",
 								"connectionName": "azureblob",
-								"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', "[resourceGroup().location]", '/managedApis/', 'azureblob')]"
+								"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', [resourceGroup().location], '/managedApis/', 'azureblob')]"
 							},
 							"teams": {
-								"connectionId": "[resourceId('Microsoft.Web/connections', "teams")]",
+								"connectionId": "[resourceId('Microsoft.Web/connections', 'teams')]",
 								"connectionName": "teams",
-								"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', "[resourceGroup().location]", '/managedApis/', 'teams')]"
+								"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', [resourceGroup().location], '/managedApis/', 'teams')]"
 							}
 						}
 					}
