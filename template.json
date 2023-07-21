@@ -6,12 +6,8 @@
 			"defaultValue": "teams",
 			"type": "String"
 		},
-		"logicapp_name": {
-			"defaultValue": "GPTTool",
-			"type": "String"
-		},
-		"connections_azureblob_name": {
-			"defaultValue": "azureblob",
+		"logicapp_nameA": {
+			"defaultValue": "AOAIinTeams_freechatMention",
 			"type": "String"
 		},
 		"location": {
@@ -24,10 +20,6 @@
 		"openai_endpoint": {
 			"type": "string"
 		},
-		"teams_channel_keyword": {
-			"type": "String",
-			"defaultValue": "ChatGPT"
-		},
 		"teams_channel_id": {
 			"type": "string"
 		},
@@ -36,6 +28,10 @@
 		},
 		"storage_account_name": {
 			"type": "string"
+		},
+		"connections_azureblob_name": {
+			"defaultValue": "gpt",
+			"type": "String"
 		},
 		"storage_account_accesskey": {
 			"type": "string"
@@ -83,7 +79,7 @@
 		{
 			"type": "Microsoft.Logic/workflows",
 			"apiVersion": "2017-07-01",
-			"name": "[parameters('logicapp_name')]",
+			"name": "[parameters('logicapp_nameA')]",
 			"location": "[parameters('location')]",
 			"dependsOn": [
 				"[resourceId('Microsoft.Web/connections', parameters('connections_azureblob_name'))]",
