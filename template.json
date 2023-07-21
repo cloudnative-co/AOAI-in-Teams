@@ -11,13 +11,17 @@
 			"type": "String"
 		},
 		"location": {
-			"type": "string",
-			"defaultValue": "[resourceGroup().location]"
+			"defaultValue": "[resourceGroup().location]",
+			"type": "string"
 		},
 		"openai_apikey": {
 			"type": "string"
 		},
 		"openai_endpoint": {
+			"type": "string"
+		},
+		"openai_role": {
+			"defaultValue": "You are an AI assistant that helps people find information.",
 			"type": "string"
 		},
 		"teams_channel_id": {
@@ -105,6 +109,10 @@
 						},
 						"containerName": {
 							"defaultValue": "[parameters('container_name')]",
+							"type": "String"
+						},
+						"openaiRole": {
+							"defaultValue": "[parameters('openai_role')]",
 							"type": "String"
 						}
 					},
@@ -202,7 +210,7 @@
 									},
 									"type": "ApiConnection",
 									"inputs": {
-										"body": "[[\n\t\t{\n\t\t\t\"role\": \"system\",\n\t\t\t\"content\": \"You are an AI assistant that helps people find information.Please answer in Japanese.\"\n\t\t},\n {\n \"content\": \"{{UserPlaceHolder}}\",\n \"role\": \"user\"\n }\n\t]",
+										"body": "[[\n\t\t{\n\t\t\t\"role\": \"system\",\n\t\t\t\"content\": \"@{parameters('openaiRole')} Please answer in Japanese.\"\n\t\t},\n {\n \"content\": \"{{UserPlaceHolder}}\",\n \"role\": \"user\"\n }\n\t]",
 										"headers": {
 											"ReadFileMetadataFromServer": true
 										},
@@ -448,7 +456,7 @@
 									"type": "SetVariable",
 									"inputs": {
 										"name": "HistoricalMessages",
-										"value": "[\n\t\t{\n\t\t\t\"role\": \"system\",\n\t\t\t\"content\": \"You are an AI assistant that helps people find information.Please answer in Japanese.\"\n\t\t},\n {\n \"content\": \"{{UserPlaceHolder}}\",\n \"role\": \"user\"\n }\n\t]\n"
+										"value": "[\n\t\t{\n\t\t\t\"role\": \"system\",\n\t\t\t\"content\": \"@{parameters('openaiRole')} Please answer in Japanese.\"\n\t\t},\n {\n \"content\": \"{{UserPlaceHolder}}\",\n \"role\": \"user\"\n }\n\t]\n"
 									}
 								},
 								"Set_variable_-_Store_Previous_Convertsation": {
