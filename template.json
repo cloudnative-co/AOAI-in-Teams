@@ -2,17 +2,9 @@
 	"$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {
-		"connections_teams_name": {
-			"defaultValue": "teams",
-			"type": "String"
-		},
 		"logicapp_name": {
 			"defaultValue": "AOAIinTeams",
 			"type": "String"
-		},
-		"location": {
-			"defaultValue": "[resourceGroup().location]",
-			"type": "string"
 		},
 		"openai_apikey": {
 			"type": "string"
@@ -47,11 +39,11 @@
 			"type": "Microsoft.Web/connections",
 			"apiVersion": "2016-06-01",
 			"name": "[parameters('container_name')]",
-			"location": "[parameters('location')]",
+			"location": "[resourceGroup().location]",
 			"kind": "V1",
 			"properties": {
 				"api": {
-					"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/', 'azureblob')]"
+					"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', "[resourceGroup().location]", '/managedApis/', 'azureblob')]"
 				},
 				"parameterValueSet": {
 					"name": "keyBasedAuth",
@@ -70,12 +62,12 @@
 		{
 			"type": "Microsoft.Web/connections",
 			"apiVersion": "2016-06-01",
-			"name": "[parameters('connections_teams_name')]",
-			"location": "[parameters('location')]",
+			"name": "teams",
+			"location": "[resourceGroup().location]",
 			"kind": "V1",
 			"properties": {
 				"api": {
-					"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/', 'teams')]"
+					"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', "[resourceGroup().location]", '/managedApis/', 'teams')]"
 				},
 				"displayName": "TeamsChannel"
 			}
@@ -84,10 +76,10 @@
 			"type": "Microsoft.Logic/workflows",
 			"apiVersion": "2017-07-01",
 			"name": "[parameters('logicapp_nameA')]",
-			"location": "[parameters('location')]",
+			"location": "[resourceGroup().location]",
 			"dependsOn": [
 				"[resourceId('Microsoft.Web/connections', parameters('container_name'))]",
-				"[resourceId('Microsoft.Web/connections', parameters('connections_teams_name'))]"
+				"[resourceId('Microsoft.Web/connections', "teams")]"
 			],
 			"properties": {
 				"state": "Enabled",
@@ -555,12 +547,12 @@
 							"azureblob": {
 								"connectionId": "[resourceId('Microsoft.Web/connections', parameters('container_name'))]",
 								"connectionName": "azureblob",
-								"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/', 'azureblob')]"
+								"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', "[resourceGroup().location]", '/managedApis/', 'azureblob')]"
 							},
 							"teams": {
-								"connectionId": "[resourceId('Microsoft.Web/connections', parameters('connections_teams_name'))]",
+								"connectionId": "[resourceId('Microsoft.Web/connections', "teams")]",
 								"connectionName": "teams",
-								"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/', 'teams')]"
+								"id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', "[resourceGroup().location]", '/managedApis/', 'teams')]"
 							}
 						}
 					}
