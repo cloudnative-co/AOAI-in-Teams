@@ -124,7 +124,7 @@
 									"channels": [
 										"@{decodeUriComponent(parameters('channelId'))}"
 									],
-									"groupId": "eb4d02fb-18e2-4cee-b89e-6ea438c7248e",
+									"groupId": "[parameters('teams_group_id')]",
 									"notificationUrl": "@{listCallbackUrl()}"
 								},
 								"host": {
