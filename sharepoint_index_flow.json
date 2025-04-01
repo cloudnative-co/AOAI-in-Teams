@@ -1,1 +1,430 @@
-
+{
+	"$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"logicapp_name": {
+			"defaultValue": "AOAIinTeams",
+			"type": "string",
+            "metadata": {
+                "description": "ロジック アプリの名前"
+            }
+		},
+		"location": {
+			"defaultValue": "[resourceGroup().location]",
+			"type": "string"
+		},
+        "aisearch_endpoint": {
+            "type": "string",
+            "metadata": {
+                "description": "https://<リソース名>.search.windows.net"
+            }
+        },
+        "aisearch_apikey": {
+            "type": "string",
+            "metadata": {
+                "description": "設定＞キー＞プライマリ管理者キー"
+            }
+        },
+        "aisearch_index_name": {
+            "type": "string",
+            "metadata": {
+                "description": "作成したいインデックス名"
+            }
+        },
+        "aisearch_indexer_name": {
+            "type": "string",
+            "metadata": {
+                "description": "作成したいインデクサー名"
+            }
+        },
+        "aisearch_datasource_name": {
+            "type": "string",
+            "metadata": {
+                "description": "作成したいデータソース名"
+            }
+        },
+        "skillset_name": {
+            "type": "string",
+            "metadata": {
+                "description": "作成したいスキルセット名"
+            }
+        },
+        "application_id": {
+            "type": "string",
+            "metadata": {
+                "description": "SharePoint Online のアプリケーション ID"
+            }
+        },
+        "application_secret": {
+            "type": "string",
+            "metadata": {
+                "description": "SharePoint Online のアプリケーション シークレット"
+            }
+        },
+        "sharepoint_domain": {
+            "type": "string",
+            "metadata": {
+                "description": "SharePoint Online のドメイン名"
+            }
+        },
+        "sharepoint_site": {
+            "type": "string",
+            "metadata": {
+                "description": "https://<ドメイン名>.sharepoint.com/sites/<サイト名>/Shared%20Documents/Forms/AllItems.aspx"
+            }
+        }
+	},
+	"variables": {},
+	"resources": [
+		{
+			"type": "Microsoft.Logic/workflows",
+			"apiVersion": "2017-07-01",
+			"name": "[parameters('logicapp_name')]",
+			"location": "[parameters('location')]",
+			"dependsOn": [],
+			"properties": {
+				"state": "Enabled",
+				"definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "triggers": {
+                        "When_a_HTTP_request_is_received": {
+                            "type": "Request",
+                            "kind": "Http"
+                        }
+                    },
+                    "actions": {
+                        "Delay": {
+                            "runAfter": {
+                                "データソース作成": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Wait",
+                            "inputs": {
+                                "interval": {
+                                    "count": 30,
+                                    "unit": "Second"
+                                }
+                            }
+                        },
+                        "Delay-copy": {
+                            "runAfter": {
+                                "インデックス作成": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Wait",
+                            "inputs": {
+                                "interval": {
+                                    "count": 30,
+                                    "unit": "Second"
+                                }
+                            }
+                        },
+                        "データソース作成": {
+                            "runAfter": {},
+                            "type": "Http",
+                            "inputs": {
+                                "uri": "[concat(parameters('aisearch_endpoint'), '/datasources?api-version=2023-10-01-Preview')]",
+                                "method": "POST",
+                                "headers": {
+                                    "Content-Type": "application/json",
+                                    "api-key": "[parameters('aisearch_apikey')]"
+                                },
+                                "body": {
+                                    "name": "@parameters('datasourceName')",
+                                    "type": "sharepoint",
+                                    "credentials": {
+                                        "connectionString": "[concat('SharePointOnlineEndpoint=https://', parameters('sharepoint_domain'), '.sharepoint.com/;ApplicationId=', parameters('application_id'), ';ApplicationSecret=', parameters('application_secret'))]"
+                                    },
+                                    "container": {
+                                        "name": "useQuery",
+                                        "query": "includeLibrary=@{parameters('siteURL')}"
+                                    }
+                                }
+                            },
+                            "runtimeConfiguration": {
+                                "contentTransfer": {
+                                    "transferMode": "Chunked"
+                                }
+                            }
+                        },
+                        "インデックス作成": {
+                            "runAfter": {
+                                "Delay": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Http",
+                            "inputs": {
+                                "uri": "[concat(parameters('aisearch_endpoint'), '/indexes?api-version=2023-10-01-Preview')]",
+                                "method": "POST",
+                                "headers": {
+                                    "Content-Type": "application/json",
+                                    "api-key": "[parameters('aisearch_apikey')]"
+                                },
+                                "body": {
+                                    "name": "@parameters('indexName')",
+                                    "fields": [
+                                        {
+                                            "name": "id",
+                                            "type": "Edm.String",
+                                            "searchable": true,
+                                            "filterable": false,
+                                            "retrievable": true,
+                                            "sortable": true,
+                                            "facetable": false,
+                                            "key": true,
+                                            "analyzer": "keyword",
+                                            "synonymMaps": []
+                                        },
+                                        {
+                                            "name": "metadata_spo_site_id",
+                                            "type": "Edm.String",
+                                            "searchable": true,
+                                            "filterable": false,
+                                            "sortable": false,
+                                            "facetable": false,
+                                            "analyzer": "ja.lucene"
+                                        },
+                                        {
+                                            "name": "metadata_spo_library_id",
+                                            "type": "Edm.String",
+                                            "searchable": true,
+                                            "filterable": false,
+                                            "sortable": false,
+                                            "facetable": false,
+                                            "analyzer": "ja.lucene"
+                                        },
+                                        {
+                                            "name": "metadata_spo_item_id",
+                                            "type": "Edm.String",
+                                            "searchable": true,
+                                            "filterable": true,
+                                            "sortable": false,
+                                            "facetable": false,
+                                            "analyzer": "ja.lucene"
+                                        },
+                                        {
+                                            "name": "metadata_spo_item_name",
+                                            "type": "Edm.String",
+                                            "searchable": true,
+                                            "filterable": false,
+                                            "sortable": false,
+                                            "facetable": false,
+                                            "analyzer": "ja.lucene"
+                                        },
+                                        {
+                                            "name": "metadata_spo_item_content_type",
+                                            "type": "Edm.String",
+                                            "searchable": false,
+                                            "filterable": true,
+                                            "sortable": false,
+                                            "facetable": true
+                                        },
+                                        {
+                                            "name": "metadata_spo_item_extension",
+                                            "type": "Edm.String",
+                                            "searchable": false,
+                                            "filterable": true,
+                                            "sortable": false,
+                                            "facetable": true
+                                        },
+                                        {
+                                            "name": "metadata_spo_item_last_modified",
+                                            "type": "Edm.DateTimeOffset",
+                                            "searchable": false,
+                                            "filterable": false,
+                                            "sortable": true,
+                                            "facetable": false
+                                        },
+                                        {
+                                            "name": "metadata_spo_item_size",
+                                            "type": "Edm.Int64",
+                                            "searchable": false,
+                                            "filterable": false,
+                                            "sortable": false,
+                                            "facetable": false
+                                        },
+                                        {
+                                            "name": "metadata_spo_item_path",
+                                            "type": "Edm.String",
+                                            "searchable": false,
+                                            "filterable": false,
+                                            "sortable": false,
+                                            "facetable": false
+                                        },
+                                        {
+                                            "name": "metadata_spo_item_weburi",
+                                            "type": "Edm.String",
+                                            "searchable": false,
+                                            "filterable": false,
+                                            "sortable": false
+                                        },
+                                        {
+                                            "name": "content",
+                                            "type": "Edm.String",
+                                            "searchable": true,
+                                            "filterable": false,
+                                            "sortable": false,
+                                            "facetable": false,
+                                            "analyzer": "ja.lucene"
+                                        },
+                                        {
+                                            "name": "embedding",
+                                            "type": "Collection(Edm.Single)",
+                                            "searchable": true,
+                                            "filterable": false,
+                                            "retrievable": true,
+                                            "sortable": false,
+                                            "facetable": false,
+                                            "key": false,
+                                            "dimensions": 3072,
+                                            "vectorSearchProfile": "vector-profile-1743127250988",
+                                            "synonymMaps": []
+                                        },
+                                        {
+                                            "name": "textItems",
+                                            "type": "Edm.String",
+                                            "searchable": true,
+                                            "filterable": true,
+                                            "sortable": false,
+                                            "facetable": false,
+                                            "analyzer": "ja.lucene"
+                                        }
+                                    ],
+                                    "semantic": {
+                                      "configurations": [
+                                        {
+                                          "name": "sp-semantic-config",
+                                          "prioritizedFields": {
+                                            "titleField": {
+                                              "fieldName": "metadata_spo_item_name"
+                                            },
+                                            "prioritizedContentFields": [
+                                              {
+                                                "fieldName": "content"
+                                              },
+                                              {
+                                                "fieldName": "metadata_spo_item_name"
+                                              }
+                                            ],
+                                            "prioritizedKeywordsFields": []
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    "vectorSearch": {
+                                        "algorithms": [
+                                        {
+                                            "name": "vector-config-1743127252114",
+                                            "kind": "hnsw",
+                                            "hnswParameters": {
+                                            "metric": "cosine",
+                                            "m": 4,
+                                            "efConstruction": 400,
+                                            "efSearch": 500
+                                            }
+                                        }
+                                        ],
+                                        "profiles": [
+                                        {
+                                            "name": "vector-profile-1743127250988",
+                                            "algorithm": "vector-config-1743127252114"
+                                        }
+                                        ],
+                                        "vectorizers": []
+                                    }
+                                }
+                            },
+                            "runtimeConfiguration": {
+                                "contentTransfer": {
+                                    "transferMode": "Chunked"
+                                }
+                            }
+                        },
+                        "インデクサー作成": {
+                            "runAfter": {
+                                "Delay-copy": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Http",
+                            "inputs": {
+                                "uri": "[concat(parameters('aisearch_endpoint'), '/indexers?api-version=2023-10-01-Preview')]",
+                                "method": "POST",
+                                "headers": {
+                                    "Content-Type": "application/json",
+                                    "api-key": "[parameters('aisearch_apikey')]"
+                                },
+                                "body": {
+                                    "name": "@parameters('indexerName')",
+                                    "dataSourceName": "@parameters('datasourceName')",
+                                    "targetIndexName": "@parameters('indexName')",
+                                    "skillsetName": "@parameters('skillName')",
+                                    "parameters": {
+                                        "batchSize": null,
+                                        "maxFailedItems": null,
+                                        "maxFailedItemsPerBatch": null,
+                                        "base64EncodeKeys": null,
+                                        "configuration": {
+                                            "indexedFileNameExtensions": ".pdf",
+                                            "excludedFileNameExtensions": ".png, .jpg",
+                                            "dataToExtract": "contentAndMetadata"
+                                        }
+                                    },
+                                    "schedule": {},
+                                    "fieldMappings": [
+                                        {
+                                            "sourceFieldName": "metadata_spo_site_library_item_id",
+                                            "targetFieldName": "id",
+                                            "mappingFunction": {
+                                                "name": "base64Encode"
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "runtimeConfiguration": {
+                                "contentTransfer": {
+                                    "transferMode": "Chunked"
+                                }
+                            }
+                        }
+                    },
+                    "outputs": {},
+                    "parameters": {
+                        "$connections": {
+                            "type": "Object",
+                            "defaultValue": {}
+                        },
+                        "datasourceName": {
+                            "defaultValue": "[parameters('aisearch_datasource_name')]",
+                            "type": "String"
+                        },
+                        "indexName": {
+                            "defaultValue": "[parameters('aisearch_index_name')]",
+                            "type": "String"
+                        },
+                        "indexerName": {
+                            "defaultValue": "[parameters('aisearch_indexer_name')]",
+                            "type": "String"
+                        },
+                        "siteURL": {
+                            "defaultValue": "[parameters('sharepoint_site')]",
+                            "type": "String"
+                        },
+                        "skillName": {
+                            "defaultValue": "[parameters('skillset_name')]",
+                            "type": "String"
+                        }
+                    }
+                },
+				"parameters": {
+					"$connections": {}
+				}
+			}
+		}
+	]
+}
