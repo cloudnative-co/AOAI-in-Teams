@@ -48,9 +48,6 @@
         },
         "aisearch_index": {
             "type": "string"
-        },
-        "openai_embedding_endpoint": {
-            "type": "string"
         }
 	},
 	"variables": {},
@@ -177,19 +174,10 @@
                                     "inputs": {
                                         "name": "LatestConversation",
                                         "value": {
-                                            "content": "@{outputs('Compose_-_Get_First_Choice')}",
+                                            "content": "@{body('チャネル内のメッセージで応答します')['body']['content']}",
                                             "role": "system"
                                         }
                                     }
-                                },
-                                "Compose_-_Get_First_Choice": {
-                                    "runAfter": {
-                                        "Parse_JSON_2": [
-                                            "Succeeded"
-                                        ]
-                                    },
-                                    "type": "Compose",
-                                    "inputs": "@first(body('Parse_JSON_2')?['choices'])?['message']?['content']"
                                 },
                                 "Create_blob_(V2)": {
                                     "runAfter": {
@@ -265,7 +253,7 @@
                                 },
                                 "Parse_JSON": {
                                     "runAfter": {
-                                        "Reply_with_a_message_in_a_channel": [
+                                        "チャネル内のメッセージで応答します": [
                                             "Succeeded"
                                         ]
                                     },
@@ -289,63 +277,6 @@
                                                 "type": "object"
                                             },
                                             "type": "array"
-                                        }
-                                    }
-                                },
-                                "Parse_JSON_2": {
-                                    "runAfter": {
-                                        "Set_ai_responce_object": [
-                                            "Succeeded",
-                                            "Skipped"
-                                        ],
-                                        "Set_ai_responce_object-copy": [
-                                            "Succeeded",
-                                            "Skipped"
-                                        ]
-                                    },
-                                    "type": "ParseJson",
-                                    "inputs": {
-                                        "content": "@variables('ai_responce_object')",
-                                        "schema": {
-                                            "properties": {
-                                                "choices": {
-                                                    "items": {
-                                                        "properties": {
-                                                            "message": {
-                                                                "properties": {
-                                                                    "content": {
-                                                                        "type": "string"
-                                                                    },
-                                                                    "role": {
-                                                                        "type": "string"
-                                                                    }
-                                                                },
-                                                                "type": "object"
-                                                            }
-                                                        },
-                                                        "required": [
-                                                            "message"
-                                                        ],
-                                                        "type": "object"
-                                                    },
-                                                    "type": "array"
-                                                },
-                                                "usage": {
-                                                    "properties": {
-                                                        "completion_tokens": {
-                                                            "type": "integer"
-                                                        },
-                                                        "prompt_tokens": {
-                                                            "type": "integer"
-                                                        },
-                                                        "total_tokens": {
-                                                            "type": "integer"
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                }
-                                            },
-                                            "type": "object"
                                         }
                                     }
                                 },
@@ -388,31 +319,6 @@
                                             },
                                             "type": "object"
                                         }
-                                    }
-                                },
-                                "Reply_with_a_message_in_a_channel": {
-                                    "runAfter": {
-                                        "Compose_-_Get_First_Choice": [
-                                            "Succeeded"
-                                        ]
-                                    },
-                                    "type": "ApiConnection",
-                                    "inputs": {
-                                        "host": {
-                                            "connection": {
-                                                "name": "@parameters('$connections')['teams']['connectionId']"
-                                            }
-                                        },
-                                        "method": "post",
-                                        "body": {
-                                            "parentMessageId": "@items('For_each_3')?['replyToMessageId']",
-                                            "recipient": {
-                                                "groupId": "[parameters('teams_group_id')]",
-                                                "channelId": "@decodeUriComponent(parameters('channelId'))"
-                                            },
-                                            "messageBody": "<p class=\"editor-paragraph\">@{replace(outputs('Compose_-_Get_First_Choice'), '\n', '<br/>')}</p>"
-                                        },
-                                        "path": "/v1.0/teams/conversation/replyWithMessage/poster/@{encodeURIComponent('User')}/location/@{encodeURIComponent('Channel')}"
                                     }
                                 },
                                 "Set_variable_-_Store_Previous_Convertsation": {
@@ -460,33 +366,9 @@
                                         "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent(parameters('storageaccountName')))}/files/@{encodeURIComponent(encodeURIComponent(parameters('containerName'),'/',body('Parse_JSON_3')?['replyToId'],'.json'))}"
                                     }
                                 },
-                                "HTTP_Convert_the_question_to_a_vector": {
-                                    "runAfter": {
-                                        "Create_blob_(V2)": [
-                                            "Succeeded"
-                                        ]
-                                    },
-                                    "type": "Http",
-                                    "inputs": {
-                                        "uri": "[parameters('openai_embedding_endpoint')]",
-                                        "method": "POST",
-                                        "headers": {
-                                            "Content-Type": "application/json",
-                                            "api-key": "[parameters('openai_apikey')]"
-                                        },
-                                        "body": {
-                                            "input": "@{outputs('Compose_-_Format_Teams_message-copy')}"
-                                        }
-                                    },
-                                    "runtimeConfiguration": {
-                                        "contentTransfer": {
-                                            "transferMode": "Chunked"
-                                        }
-                                    }
-                                },
                                 "HTTP_AI_Search": {
                                     "runAfter": {
-                                        "HTTP_Convert_the_question_to_a_vector": [
+                                        "Create_blob_(V2)": [
                                             "Succeeded"
                                         ]
                                     },
@@ -504,15 +386,15 @@
                                             "queryLanguage": "ja-JP",
                                             "queryType": "semantic",
                                             "search": "@{outputs('Compose_-_Format_Teams_message-copy')}",
-                                            "select": "content,metadata_spo_item_name",
+                                            "select": "content,metadata_spo_item_name,textItems,metadata_spo_item_weburi",
                                             "semanticConfiguration": "sp-semantic-config",
                                             "top": "50",
                                             "vectorQueries": [
                                                 {
                                                     "fields": "embedding",
                                                     "k": 50,
-                                                    "kind": "vector",
-                                                    "vector": "@body('HTTP_Convert_the_question_to_a_vector')['data'][0]['embedding']"
+                                                    "kind": "text",
+                                                    "text": "@{outputs('Compose_-_Format_Teams_message-copy')}"
                                                 }
                                             ]
                                         }
@@ -556,13 +438,7 @@
                                             "api-key": "[parameters('openai_apikey')]"
                                         },
                                         "body": {
-                                            "frequency_penalty": 0,
-                                            "max_tokens": 400,
-                                            "messages": "@json(variables('HistoricalMessages'))",
-                                            "presence_penalty": 0,
-                                            "stop": null,
-                                            "temperature": 0.7,
-                                            "top_p": 0.95
+                                            "messages": "@json(variables('HistoricalMessages'))"
                                         }
                                     }
                                 },
@@ -587,35 +463,11 @@
                                                     "role": "system"
                                                 },
                                                 {
-                                                    "content": "<context><doc1>@{body('HTTP_AI_Search')?['value'][0]['metadata_spo_item_name']}:@{body('HTTP_AI_Search')?['value'][0]['content']}</doc1><doc2>@{body('HTTP_AI_Search')?['value'][1]['metadata_spo_item_name']}:@{body('HTTP_AI_Search')?['value'][1]['content']}</doc2><doc3>@{body('HTTP_AI_Search')?['value'][2]['metadata_spo_item_name']}:@{body('HTTP_AI_Search')?['value'][2]['content']}<doc3></context><question>@{outputs('Compose_-_Format_Teams_message-copy')}</question>",
+                                                    "content": "<context><doc1>@{body('HTTP_AI_Search')?['value'][0]['metadata_spo_item_name']}:@{body('HTTP_AI_Search')?['value'][0]['textItems']}</doc1><doc2>@{body('HTTP_AI_Search')?['value'][1]['metadata_spo_item_name']}:@{body('HTTP_AI_Search')?['value'][1]['textItems']}</doc2><doc3>@{body('HTTP_AI_Search')?['value'][2]['metadata_spo_item_name']}:@{body('HTTP_AI_Search')?['value'][2]['textItems']}<doc3></context><question>@{outputs('Compose_-_Format_Teams_message-copy')}</question>",
                                                     "role": "user"
                                                 }
                                             ]
                                         }
-                                    }
-                                },
-                                "Set_ai_responce_object": {
-                                    "runAfter": {
-                                        "Set_First_AIRole": [
-                                            "Succeeded"
-                                        ]
-                                    },
-                                    "type": "SetVariable",
-                                    "inputs": {
-                                        "name": "ai_responce_object",
-                                        "value": "@body('HTTP_AOAI_Create_answer')"
-                                    }
-                                },
-                                "Set_ai_responce_object-copy": {
-                                    "runAfter": {
-                                        "HTTP_AOAI_Create_answer-copy": [
-                                            "Succeeded"
-                                        ]
-                                    },
-                                    "type": "SetVariable",
-                                    "inputs": {
-                                        "name": "ai_responce_object",
-                                        "value": "@body('HTTP_AOAI_Create_answer-copy')"
                                     }
                                 },
                                 "Set_Request_Messages": {
@@ -641,10 +493,168 @@
                                         "name": "HistoricalMessages",
                                         "value": "[\n\t\t{\n\t\t\t\"role\": \"system\",\n\t\t\t\"content\": \"You are an excellent assistant. You are answering the user's question in Japanese based on the context. If you answer based on the context, please also tell the user the metadata_spo_item_name of the document you referenced. If there is no information related to the context, please answer as much as you know.\"\n\t\t}\n\n\t]\n"
                                     }
+                                },
+                                "チャネル内のメッセージで応答します": {
+                                    "runAfter": {
+                                        "Set_Post_Message_Teams": [
+                                            "Succeeded",
+                                            "Skipped"
+                                        ],
+                                        "Set_Post_Message_Teams_2": [
+                                            "Succeeded",
+                                            "Skipped"
+                                        ]
+                                    },
+                                    "type": "ApiConnection",
+                                    "inputs": {
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['teams']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "body": {
+                                            "parentMessageId": "@items('For_each_3')?['replyToMessageId']",
+                                            "recipient": {
+                                                "groupId": "[parameters('teams_group_id')]",
+                                                "channelId": "@decodeUriComponent(parameters('channelId'))"
+                                            },
+                                            "messageBody": "<p class=\"editor-paragraph\">@{variables('post_temas_message')}</p>"
+                                        },
+                                        "path": "/v1.0/teams/conversation/replyWithMessage/poster/@{encodeURIComponent('User')}/location/@{encodeURIComponent('Channel')}"
+                                    }
+                                },
+                                "Parse_JSON_AOAI_Response": {
+                                    "runAfter": {
+                                        "Set_First_AIRole": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ParseJson",
+                                    "inputs": {
+                                        "content": "@body('HTTP_AOAI_Create_answer')",
+                                        "schema": {
+                                            "properties": {
+                                                "choices": {
+                                                    "items": {
+                                                        "properties": {
+                                                            "message": {
+                                                                "properties": {
+                                                                    "content": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "role": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "message"
+                                                        ],
+                                                        "type": "object"
+                                                    },
+                                                    "type": "array"
+                                                },
+                                                "usage": {
+                                                    "properties": {
+                                                        "completion_tokens": {
+                                                            "type": "integer"
+                                                        },
+                                                        "prompt_tokens": {
+                                                            "type": "integer"
+                                                        },
+                                                        "total_tokens": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "Parse_JSON_AOAI_Response_2": {
+                                    "runAfter": {
+                                        "HTTP_AOAI_Create_answer-copy": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ParseJson",
+                                    "inputs": {
+                                        "content": "@body('HTTP_AOAI_Create_answer-copy')",
+                                        "schema": {
+                                            "properties": {
+                                                "choices": {
+                                                    "items": {
+                                                        "properties": {
+                                                            "message": {
+                                                                "properties": {
+                                                                    "content": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "role": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "message"
+                                                        ],
+                                                        "type": "object"
+                                                    },
+                                                    "type": "array"
+                                                },
+                                                "usage": {
+                                                    "properties": {
+                                                        "completion_tokens": {
+                                                            "type": "integer"
+                                                        },
+                                                        "prompt_tokens": {
+                                                            "type": "integer"
+                                                        },
+                                                        "total_tokens": {
+                                                            "type": "integer"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "Set_Post_Message_Teams": {
+                                    "runAfter": {
+                                        "Parse_JSON_AOAI_Response": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "post_temas_message",
+                                        "value": "<h2>検索結果をもとにAIからの回答</h2>\n  <p>\n    @{replace(first(body('Parse_JSON_AOAI_Response')?['choices'])?['message']?['content'], '\n', '<br/>')}\n  </p>\n  <hr>\n  <h2>検索した際のTOP3のドキュメント（検索時のスコア）</h2>\n  <ul>\n    <li><a href=\"@{body('HTTP_AI_Search')?['value'][0]['metadata_spo_item_weburi']}\">@{body('HTTP_AI_Search')?['value'][0]['metadata_spo_item_name']}</a>（@{body('HTTP_AI_Search')?['value'][0]['@search.score']}）</li>\n    <li><a href=\"@{body('HTTP_AI_Search')?['value'][1]['metadata_spo_item_weburi']}\">@{body('HTTP_AI_Search')?['value'][1]['metadata_spo_item_name']}</a>（@{body('HTTP_AI_Search')?['value'][1]['@search.score']}）</li>\n    <li><a href=\"@{body('HTTP_AI_Search')?['value'][2]['metadata_spo_item_weburi']}\">@{body('HTTP_AI_Search')?['value'][2]['metadata_spo_item_name']}</a>（@{body('HTTP_AI_Search')?['value'][2]['@search.score']}）</li>\n  </ul>"
+                                    }
+                                },
+                                "Set_Post_Message_Teams_2": {
+                                    "runAfter": {
+                                        "Parse_JSON_AOAI_Response_2": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "post_temas_message",
+                                        "value": "@replace(first(body('Parse_JSON_AOAI_Response_2')?['choices'])?['message']?['content'], '\n', '<br/>')"
+                                    }
                                 }
                             },
                             "runAfter": {
-                                "Create_ai_response_object": [
+                                "Create_Teams_Message": [
                                     "Succeeded"
                                 ]
                             },
@@ -684,7 +694,7 @@
                                 ]
                             }
                         },
-                        "Create_ai_response_object": {
+                        "Create_Teams_Message": {
                             "runAfter": {
                                 "Create_LastConversation-array": [
                                     "Succeeded"
@@ -694,8 +704,8 @@
                             "inputs": {
                                 "variables": [
                                     {
-                                        "name": "ai_responce_object",
-                                        "type": "object"
+                                        "name": "post_temas_message",
+                                        "type": "string"
                                     }
                                 ]
                             }
