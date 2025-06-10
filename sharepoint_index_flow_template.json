@@ -315,7 +315,7 @@
                                                 "fieldName": "textItems"
                                               },
                                               {
-                                                "fieldName": "metadata_spo_item_uri"
+                                                "fieldName": "metadata_spo_item_weburi"
                                               }
                                             ],
                                             "prioritizedKeywordsFields": []
