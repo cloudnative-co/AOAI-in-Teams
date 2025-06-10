@@ -2,7 +2,7 @@
 	"$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {
-		"logicapp_name": {
+		"logicappName": {
 			"defaultValue": "AOAIinTeams",
 			"type": "string",
             "metadata": {
@@ -13,55 +13,61 @@
 			"defaultValue": "[resourceGroup().location]",
 			"type": "string"
 		},
-        "aisearch_endpoint": {
+        "azureAISearchEndpoint": {
             "type": "string",
             "metadata": {
                 "description": "https://<リソース名>.search.windows.net"
             }
         },
-        "aisearch_apikey": {
-            "type": "string",
-            "metadata": {
-                "description": "設定＞キー＞プライマリ管理者キー"
-            }
-        },
-        "aisearch_index_name": {
+        "azureAISearchIndexName": {
             "type": "string",
             "metadata": {
                 "description": "作成したいインデックス名"
             }
         },
-        "aisearch_indexer_name": {
+        "azureAISearchIndexerName": {
             "type": "string",
             "metadata": {
                 "description": "作成したいインデクサー名"
             }
         },
-        "aisearch_datasource_name": {
+        "azureAISearchDatasourceName": {
             "type": "string",
             "metadata": {
                 "description": "作成したいデータソース名"
             }
         },
-        "application_id": {
+        "azureAISearchSkillsetName": {
+            "type": "string",
+            "metadata": {
+                "description": "作成したいスキルセット名"
+            }
+        },
+        "azureOpenAIEndpoint": {
+            "type": "string",
+            "metadata": {
+                "description": "https://<リソース名>.openai.azure.com"
+            }
+        },
+        "applicationId": {
             "type": "string",
             "metadata": {
                 "description": "SharePoint Online のアプリケーション ID"
             }
         },
-        "application_secret": {
+        "applicationSecret": {
             "type": "string",
             "metadata": {
                 "description": "SharePoint Online のアプリケーション シークレット"
             }
         },
-        "sharepoint_domain": {
+        "sharepointDomain": {
             "type": "string",
             "metadata": {
                 "description": "SharePoint Online のドメイン名"
             }
         },
-        "sharepoint_site": {
+        "sharepointSiteURL": {
             "type": "string",
             "metadata": {
                 "description": "https://<ドメイン名>.sharepoint.com/sites/<サイト名>/Shared%20Documents/Forms/AllItems.aspx"
@@ -73,7 +79,7 @@
 		{
 			"type": "Microsoft.Logic/workflows",
 			"apiVersion": "2017-07-01",
-			"name": "[parameters('logicapp_name')]",
+			"name": "[parameters('logicappName')]",
 			"location": "[parameters('location')]",
 			"dependsOn": [],
 			"properties": {
@@ -120,22 +126,25 @@
                             "runAfter": {},
                             "type": "Http",
                             "inputs": {
-                                "uri": "[concat(parameters('aisearch_endpoint'), '/datasources?api-version=2023-10-01-Preview')]",
+                                "uri": "[concat(parameters('azureAISearchEndpoint'), '/datasources?api-version=2024-11-01-preview')]",
                                 "method": "POST",
                                 "headers": {
-                                    "Content-Type": "application/json",
-                                    "api-key": "[parameters('aisearch_apikey')]"
+                                    "Content-Type": "application/json"
                                 },
                                 "body": {
                                     "name": "@parameters('datasourceName')",
                                     "type": "sharepoint",
                                     "credentials": {
-                                        "connectionString": "[concat('SharePointOnlineEndpoint=https://', parameters('sharepoint_domain'), '.sharepoint.com/;ApplicationId=', parameters('application_id'), ';ApplicationSecret=', parameters('application_secret'))]"
+                                        "connectionString": "[concat('SharePointOnlineEndpoint=https://', parameters('sharepointDomain'), '.sharepoint.com/;ApplicationId=', parameters('applicationId'), ';ApplicationSecret=', parameters('applicationSecret'))]"
                                     },
                                     "container": {
                                         "name": "useQuery",
                                         "query": "includeLibrary=@{parameters('siteURL')}"
                                     }
+                                },
+                                "authentication": {
+                                    "type": "ManagedServiceIdentity",
+                                    "audience": "https://search.azure.com/"
                                 }
                             },
                             "runtimeConfiguration": {
@@ -152,11 +161,10 @@
                             },
                             "type": "Http",
                             "inputs": {
-                                "uri": "[concat(parameters('aisearch_endpoint'), '/indexes?api-version=2023-10-01-Preview')]",
+                                "uri": "[concat(parameters('azureAISearchEndpoint'), '/indexes?api-version=2024-11-01-preview')]",
                                 "method": "POST",
                                 "headers": {
-                                    "Content-Type": "application/json",
-                                    "api-key": "[parameters('aisearch_apikey')]"
+                                    "Content-Type": "application/json"
                                 },
                                 "body": {
                                     "name": "@parameters('indexName')",
@@ -275,7 +283,7 @@
                                             "facetable": false,
                                             "key": false,
                                             "dimensions": 3072,
-                                            "vectorSearchProfile": "vector-profile-1743127250988",
+                                            "vectorSearchProfile": "sp-vector-profile",
                                             "synonymMaps": []
                                         },
                                         {
@@ -302,6 +310,12 @@
                                               },
                                               {
                                                 "fieldName": "metadata_spo_item_name"
+                                              },
+                                              {
+                                                "fieldName": "textItems"
+                                              },
+                                              {
+                                                "fieldName": "metadata_spo_item_uri"
                                               }
                                             ],
                                             "prioritizedKeywordsFields": []
@@ -312,7 +326,7 @@
                                     "vectorSearch": {
                                         "algorithms": [
                                         {
-                                            "name": "vector-config-1743127252114",
+                                            "name": "sp-vector-config",
                                             "kind": "hnsw",
                                             "hnswParameters": {
                                             "metric": "cosine",
@@ -324,12 +338,27 @@
                                         ],
                                         "profiles": [
                                         {
-                                            "name": "vector-profile-1743127250988",
-                                            "algorithm": "vector-config-1743127252114"
+                                            "name": "sp-vector-profile",
+                                            "algorithm": "sp-vector-config",
+                                            "vectorizer": "sp-vectorizer"
                                         }
                                         ],
-                                        "vectorizers": []
+                                        "vectorizers": [
+                                            {
+                                                "name": "sp-vectorizer",
+                                                "kind": "azureOpenAI",
+                                                "azureOpenAIParameters": {
+                                                    "resourceUri": "[parameters('azureOpenAIEndpoint')]",
+                                                    "deploymentId": "text-embedding-3-large",
+                                                    "modelName": "text-embedding-3-large"
+                                                }
+                                            }
+                                        ]
                                     }
+                                },
+                                "authentication": {
+                                    "type": "ManagedServiceIdentity",
+                                    "audience": "https://search.azure.com/"
                                 }
                             },
                             "runtimeConfiguration": {
@@ -340,34 +369,37 @@
                         },
                         "インデクサー作成": {
                             "runAfter": {
-                                "Delay-copy": [
+                                "Delay-copy-copy": [
                                     "Succeeded"
                                 ]
                             },
                             "type": "Http",
                             "inputs": {
-                                "uri": "[concat(parameters('aisearch_endpoint'), '/indexers?api-version=2023-10-01-Preview')]",
+                                "uri": "[concat(parameters('azureAISearchEndpoint'), '/indexers?api-version=2024-11-01-preview')]",
                                 "method": "POST",
                                 "headers": {
-                                    "Content-Type": "application/json",
-                                    "api-key": "[parameters('aisearch_apikey')]"
+                                    "Content-Type": "application/json"
                                 },
                                 "body": {
                                     "name": "@parameters('indexerName')",
                                     "dataSourceName": "@parameters('datasourceName')",
                                     "targetIndexName": "@parameters('indexName')",
+                                    "skillsetName": "@parameters('skillsetName')",
+                                    "schedule": {
+                                        "interval": "P1D",
+                                        "startTime": "@{utcNow()}"
+                                    },
                                     "parameters": {
                                         "batchSize": null,
                                         "maxFailedItems": null,
                                         "maxFailedItemsPerBatch": null,
                                         "base64EncodeKeys": null,
                                         "configuration": {
-                                            "indexedFileNameExtensions": ".pdf",
+                                            "indexedFileNameExtensions": ".pdf, .docx, .xlsx, .pptx, .txt",
                                             "excludedFileNameExtensions": ".png, .jpg",
                                             "dataToExtract": "contentAndMetadata"
                                         }
                                     },
-                                    "schedule": {},
                                     "fieldMappings": [
                                         {
                                             "sourceFieldName": "metadata_spo_site_library_item_id",
@@ -377,11 +409,169 @@
                                             }
                                         }
                                     ]
+                                },
+                                "authentication": {
+                                    "type": "ManagedServiceIdentity",
+                                    "audience": "https://search.azure.com/"
                                 }
                             },
                             "runtimeConfiguration": {
                                 "contentTransfer": {
                                     "transferMode": "Chunked"
+                                }
+                            }
+                        },
+                        "スキルセット作成": {
+                            "runAfter": {
+                                "Delay-copy": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Http",
+                            "inputs": {
+                                "uri": "[concat(parameters('azureAISearchEndpoint'), '/skillsets/', parameters('azureAISearchSkillsetName'), '?api-version=2024-11-01-preview')]",
+                                "method": "PUT",
+                                "headers": {
+                                    "Content-Type": "application/json"
+                                },
+                                "body": {
+                                    "name": "@parameters('skillsetName')",
+                                    "description": "skillset_template",
+                                    "skills": [
+                                        {
+                                            "@@odata.type": "#Microsoft.Skills.Text.SplitSkill",
+                                            "name": "#1",
+                                            "description": "text split for sharepoint-indexer",
+                                            "context": "/document",
+                                            "defaultLanguageCode": "ja",
+                                            "textSplitMode": "pages",
+                                            "maximumPageLength": 500,
+                                            "pageOverlapLength": 100,
+                                            "maximumPagesToTake": 0,
+                                            "unit": "characters",
+                                            "inputs": [
+                                                {
+                                                    "name": "text",
+                                                    "source": "/document/content",
+                                                    "inputs": []
+                                                }
+                                            ],
+                                            "outputs": [
+                                                {
+                                                    "name": "textItems",
+                                                    "targetName": "textItems"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "@@odata.type": "#Microsoft.Skills.Text.AzureOpenAIEmbeddingSkill",
+                                            "name": "#2",
+                                            "description": "",
+                                            "context": "/document/textItems/*",
+                                            "resourceUri": "[parameters('azureOpenAIEndpoint')]",
+                                            "deploymentId": "text-embedding-3-large",
+                                            "dimensions": 3072,
+                                            "modelName": "text-embedding-3-large",
+                                            "inputs": [
+                                                {
+                                                    "name": "text",
+                                                    "source": "/document/textItems/*",
+                                                    "inputs": []
+                                                }
+                                            ],
+                                            "outputs": [
+                                                {
+                                                    "name": "embedding",
+                                                    "targetName": "embedding"
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                    "indexProjections": {
+                                        "selectors": [
+                                            {
+                                                "targetIndexName": "@{parameters('indexName')}",
+                                                "parentKeyFieldName": "metadata_spo_item_id",
+                                                "sourceContext": "/document/textItems/*",
+                                                "mappings": [
+                                                    {
+                                                        "name": "textItems",
+                                                        "source": "/document/textItems/*",
+                                                        "inputs": []
+                                                    },
+                                                    {
+                                                        "name": "embedding",
+                                                        "source": "/document/textItems/*/embedding",
+                                                        "inputs": []
+                                                    },
+                                                    {
+                                                        "name": "metadata_spo_item_name",
+                                                        "source": "/document/metadata_spo_item_name",
+                                                        "inputs": []
+                                                    },
+                                                    {
+                                                        "name": "metadata_spo_item_path",
+                                                        "source": "/document/metadata_spo_item_path",
+                                                        "inputs": []
+                                                    },
+                                                    {
+                                                        "name": "metadata_spo_item_content_type",
+                                                        "source": "/document/metadata_spo_item_content_type",
+                                                        "inputs": []
+                                                    },
+                                                    {
+                                                        "name": "metadata_spo_item_last_modified",
+                                                        "source": "/document/metadata_spo_item_last_modified",
+                                                        "inputs": []
+                                                    },
+                                                    {
+                                                        "name": "metadata_spo_item_size",
+                                                        "source": "/document/metadata_spo_item_size",
+                                                        "inputs": []
+                                                    },
+                                                    {
+                                                        "name": "metadata_spo_item_weburi",
+                                                        "source": "/document/metadata_spo_item_weburi",
+                                                        "inputs": []
+                                                    },
+                                                    {
+                                                        "name": "content",
+                                                        "source": "/document/content",
+                                                        "inputs": []
+                                                    }
+                                                ]
+                                            }
+                                        ],
+                                        "parameters": {
+                                            "projectionMode": "skipIndexingParentDocuments"
+                                        }
+                                    },
+                                    "cognitiveServices": {
+                                        "@@odata.type": "#Microsoft.Azure.Search.DefaultCognitiveServices"
+                                    }
+                                },
+                                "authentication": {
+                                    "type": "ManagedServiceIdentity",
+                                    "audience": "https://search.azure.com/"
+                                }
+                            },
+                            "runtimeConfiguration": {
+                                "contentTransfer": {
+                                    "transferMode": "Chunked"
+                                }
+                            }
+                        },
+                        "Delay-copy-copy": {
+                            "runAfter": {
+                                "スキルセット作成": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Wait",
+                            "inputs": {
+                                "interval": {
+                                    "count": 30,
+                                    "unit": "Second"
                                 }
                             }
                         }
@@ -393,19 +583,23 @@
                             "defaultValue": {}
                         },
                         "datasourceName": {
-                            "defaultValue": "[parameters('aisearch_datasource_name')]",
+                            "defaultValue": "[parameters('azureAISearchDatasourceName')]",
                             "type": "String"
                         },
                         "indexName": {
-                            "defaultValue": "[parameters('aisearch_index_name')]",
+                            "defaultValue": "[parameters('azureAISearchIndexName')]",
                             "type": "String"
                         },
                         "indexerName": {
-                            "defaultValue": "[parameters('aisearch_indexer_name')]",
+                            "defaultValue": "[parameters('azureAISearchIndexerName')]",
+                            "type": "String"
+                        },
+                        "skillsetName": {
+                            "defaultValue": "[parameters('azureAISearchSkillsetName')]",
                             "type": "String"
                         },
                         "siteURL": {
-                            "defaultValue": "[parameters('sharepoint_site')]",
+                            "defaultValue": "[parameters('sharepointSiteURL')]",
                             "type": "String"
                         }
                     }
