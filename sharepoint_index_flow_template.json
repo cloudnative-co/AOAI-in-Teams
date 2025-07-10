@@ -429,8 +429,8 @@
                             },
                             "type": "Http",
                             "inputs": {
-                                "uri": "[concat(parameters('azureAISearchEndpoint'), '/skillsets/', parameters('azureAISearchSkillsetName'), '?api-version=2024-11-01-preview')]",
-                                "method": "PUT",
+                                "uri": "[concat(parameters('azureAISearchEndpoint'), '/skillsets?api-version=2024-11-01-preview')]",
+                                "method": "POST",
                                 "headers": {
                                     "Content-Type": "application/json"
                                 },
