@@ -495,6 +495,21 @@
                                                 "sourceContext": "/document/textItems/*",
                                                 "mappings": [
                                                     {
+                                                        "name": "metadata_spo_site_id",
+                                                        "source": "/document/metadata_spo_site_id",
+                                                        "inputs": []
+                                                    },
+                                                    {
+                                                        "name": "metadata_spo_library_id",
+                                                        "source": "/document/metadata_spo_library_id",
+                                                        "inputs": []
+                                                    },
+                                                    {
+                                                        "name": "metadata_spo_item_extension",
+                                                        "source": "/document/metadata_spo_item_extension",
+                                                        "inputs": []
+                                                    },
+                                                    {
                                                         "name": "textItems",
                                                         "source": "/document/textItems/*",
                                                         "inputs": []
